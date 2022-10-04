@@ -1,26 +1,14 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
-w = 400
-h = 300
-
-# Default light and material parameters.
-ambient = .05
-diffuse_c = 1.
-specular_c = 1.
-specular_k = 50
-
-O = np.array([0., 0.35, -1.])  # Camera.
-Q = np.array([0., 0., 0.])  # Camera pointing to.
+O = np.array([0., 0.35, -1.])  # Camera
+Q = np.array([0., 0., 0.])  # Camera pointing direction
 
 def normalize(x):
     x /= np.linalg.norm(x)
     return x
 
+# Returns distance from O in direction of ray OD to plane P with normal vector N
 def intersect_plane(O, D, P, N):
-    # Return the distance from O to the intersection of the ray (O, D) with the 
-    # plane (P, N), or +inf if there is no intersection.
-    # O and P are 3D points, D and N (normal) are normalized vectors.
     denom = np.dot(D, N)
     if np.abs(denom) < 1e-6:
         return np.inf
@@ -29,10 +17,8 @@ def intersect_plane(O, D, P, N):
         return np.inf
     return d
 
+# Returns distance from O in direction of ray OD to sphere with centre S and radius R
 def intersect_sphere(O, D, S, R):
-    # Return the distance from O to the intersection of the ray (O, D) with the 
-    # sphere (S, R), or +inf if there is no intersection.
-    # O and S are 3D points, D (direction) is a normalized vector, R is a scalar.
     a = np.dot(D, D)
     OS = O - S
     b = 2 * np.dot(D, OS)
@@ -54,20 +40,6 @@ def intersect(O, D, obj):
     elif obj['type'] == 'sphere':
         return intersect_sphere(O, D, obj['position'], obj['radius'])
 
-def get_normal(obj, M):
-    # Find normal.
-    if obj['type'] == 'sphere':
-        N = normalize(M - obj['position'])
-    elif obj['type'] == 'plane':
-        N = obj['normal']
-    return N
-    
-def get_color(obj, M):
-    color = obj['color']
-    if not hasattr(color, '__len__'):
-        color = color(M)
-    return color
-
 def trace_ray(L, color_light, material, rayO, rayD, scene):
     # Find first point of intersection with the scene.
     t = np.inf
@@ -75,29 +47,42 @@ def trace_ray(L, color_light, material, rayO, rayD, scene):
         t_obj = intersect(rayO, rayD, obj)
         if t_obj < t:
             t, obj_idx = t_obj, i
+    
     # Return None if the ray does not intersect any object.
     if t == np.inf:
         return
+        
     # Find the object.
     obj = scene[obj_idx]
-    # Find the point of intersection on the object.
+
+    # Point of intersection on the object.
     M = rayO + rayD * t
-    # Find properties of the object.
-    N = get_normal(obj, M)
-    color = get_color(obj, M)
+
+    # Properties of the object.
+    if obj['type'] == 'sphere':
+        N = normalize(M - obj['position'])
+    elif obj['type'] == 'plane':
+        N = obj['normal']
+    
+    color = obj['color']
+    if not hasattr(color, '__len__'):
+        color = color(M)
+    
     toL = normalize(L - M)
     toO = normalize(O - M)
+
     # Shadow: find if the point is shadowed or not.
     l = [intersect(M + N * .0001, toL, obj_sh) 
             for k, obj_sh in enumerate(scene) if k != obj_idx]
+
     if l and min(l) < np.inf:
         return
-    # Start computing the color.
+    
+    # Color computation
     col_ray = material[0]
-    # Lambert shading (diffuse).
     col_ray += obj.get('diffuse_c', material[1]) * max(np.dot(N, toL), 0) * color
-    # Blinn-Phong shading (specular).
     col_ray += obj.get('specular_c', material[2]) * max(np.dot(N, normalize(toL + toO)), 0) ** material[3] * color_light
+
     return obj, M, N, col_ray
 
 def add_sphere(position, radius, color):
@@ -105,21 +90,22 @@ def add_sphere(position, radius, color):
         radius=np.array(radius), color=np.array(color), reflection=.5)
     
 def add_plane(position, normal):
+    color_plane0 = 1. * np.ones(3)
+    color_plane1 = 0. * np.ones(3)
+
     return dict(type='plane', position=np.array(position), 
         normal=np.array(normal),
         color=lambda M: (color_plane0 
             if (int(M[0] * 2) % 2) == (int(M[2] * 2) % 2) else color_plane1),
         diffuse_c=.75, specular_c=.5, reflection=.25)
-    
-# List of objects.
-color_plane0 = 1. * np.ones(3)
-color_plane1 = 0. * np.ones(3)
 
 def ray_tracer(data):
 
-    depth_max = 5  # Maximum number of light reflections.
-    col = np.zeros(3)  # Current color.
-    img = np.zeros((h, w, 3))
+    width = 400
+    height = 300
+
+    max_reflections = 5
+    img = np.zeros((height, width, 3))
 
     scene = [add_sphere(data["b1_pos"], .6, data["b1_color"]),
          add_sphere(data["b2_pos"], .6, data["b2_color"]),
@@ -127,30 +113,33 @@ def ray_tracer(data):
          add_plane([0., -.5, 0.], [0., 1., 0.]),
     ]
 
-    r = float(w) / h
-    # Screen coordinates: x0, y0, x1, y1.
-    S = (-1., -1. / r + .25, 1., 1. / r + .25)
-    # Loop through all pixels.
-    for i, x in enumerate(np.linspace(S[0], S[2], w)):
-        for j, y in enumerate(np.linspace(S[1], S[3], h)):
-            col[:] = 0
+    r = float(width) / height
+    
+    # Main loop
+    for i, x in enumerate(np.linspace(-1, 1, width)):
+        for j, y in enumerate(np.linspace(-1.0/r + 0.25, 1.0/r + 0.25, height)):
+            col = np.zeros(3)
             Q[:2] = (x, y)
             D = normalize(Q - O)
-            depth = 0
+            reflection_no = 0
             rayO, rayD = O, D
             reflection = 1.
             # Loop through initial and secondary rays.
-            while depth < depth_max:
+            while reflection_no < max_reflections:
                 traced = trace_ray(data["l_pos"], np.array(data["l_color"]), np.array(data["material"]), rayO, rayD, scene)
                 if not traced:
                     break
+
                 obj, M, N, col_ray = traced
-                # Reflection: create a new ray.
+
+                # Creating reflected ray
+
                 rayO, rayD = M + N * .0001, normalize(rayD - 2 * np.dot(rayD, N) * N)
-                depth += 1
+                reflection_no += 1
                 col += reflection * col_ray
                 reflection *= obj.get('reflection', 1.)
-            img[h - j - 1, i, :] = np.clip(col, 0, 1)
+
+            img[height - j - 1, i, :] = np.clip(col, 0, 1)
 
     img *= 255
     img = img.astype(np.uint8)
