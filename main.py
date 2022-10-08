@@ -13,6 +13,8 @@ class UI(QtWidgets.QMainWindow):
         self.defaults = self.findChild(QtWidgets.QPushButton, 'pushButton_3')
         self.output = self.findChild(QtWidgets.QLabel, 'label')
 
+        self.setWindowTitle("Ray Tracer")
+
         self.b1_r = self.findChild(QtWidgets.QLineEdit, 'b1_r')
         self.b1_r.setValidator(QIntValidator(0, 255))
         self.b1_g = self.findChild(QtWidgets.QLineEdit, 'b1_g')
@@ -89,15 +91,15 @@ class UI(QtWidgets.QMainWindow):
         self.b1_y.setText("0.1")
         self.b1_z.setText("1.0")
 
-        self.b2_r.setText("255")
-        self.b2_g.setText("0")
+        self.b2_r.setText("0")
+        self.b2_g.setText("180")
         self.b2_b.setText("0")
         self.b2_x.setText("-0.75")
         self.b2_y.setText("0.2")
         self.b2_z.setText("2.25")
 
-        self.b3_r.setText("0")
-        self.b3_g.setText("180")
+        self.b3_r.setText("255")
+        self.b3_g.setText("0")
         self.b3_b.setText("0")
         self.b3_x.setText("-2.75")
         self.b3_y.setText("0.1")
