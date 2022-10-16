@@ -107,11 +107,12 @@ def ray_tracer(data):
     max_reflections = 5
     img = np.zeros((height, width, 3))
 
-    scene = [add_sphere(data["b1_pos"], .6, data["b1_color"]),
-         add_sphere(data["b2_pos"], .6, data["b2_color"]),
-         add_sphere(data["b3_pos"], .6, data["b3_color"]),
-         add_plane([0., -.5, 0.], [0., 1., 0.]),
-    ]
+    scene = []
+
+    for obj in data['objects']:
+        scene.append(add_sphere(obj[0], obj[1], obj[2]))
+
+    scene.append(add_plane([0., -.5, 0.], [0., 1., 0.]))
 
     r = float(width) / height
     

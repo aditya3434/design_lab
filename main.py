@@ -1,7 +1,8 @@
 from PyQt5 import QtWidgets, uic, QtCore
 from PyQt5.QtGui import QPixmap, QImage, QIntValidator, QGuiApplication, QDoubleValidator
-import sys
 import ray_tracer
+import sys
+import random
 
 class UI(QtWidgets.QMainWindow):
     def __init__(self):
@@ -9,102 +10,30 @@ class UI(QtWidgets.QMainWindow):
         uic.loadUi('interface.ui', self)
 
         self.display_button = self.findChild(QtWidgets.QPushButton, 'pushButton')
-        self.clear_button = self.findChild(QtWidgets.QPushButton, 'pushButton_2')
-        self.defaults = self.findChild(QtWidgets.QPushButton, 'pushButton_3')
+        self.remove_object_button = self.findChild(QtWidgets.QPushButton, 'pushButton_2')
+        self.add_object_button = self.findChild(QtWidgets.QPushButton, 'pushButton_3')
+
+        self.scroll_area = self.findChild(QtWidgets.QWidget, 'scrollAreaWidgetContents')
+        self.gridLayout = QtWidgets.QGridLayout(self.scroll_area)
+        self.gridLayout.setContentsMargins(40, 20, 0, 20)
+        self.gridLayout.setVerticalSpacing(25)
+
         self.output = self.findChild(QtWidgets.QLabel, 'label')
 
         self.setWindowTitle("Ray Tracer")
 
-        self.b1_r = self.findChild(QtWidgets.QLineEdit, 'b1_r')
-        self.b1_r.setValidator(QIntValidator(0, 255))
-        self.b1_g = self.findChild(QtWidgets.QLineEdit, 'b1_g')
-        self.b1_g.setValidator(QIntValidator(0, 255))
-        self.b1_b = self.findChild(QtWidgets.QLineEdit, 'b1_b')
-        self.b1_b.setValidator(QIntValidator(0, 255))
-        self.b1_x = self.findChild(QtWidgets.QLineEdit, 'b1_x')
-        self.b1_x.setValidator(QDoubleValidator(-10, 10, 2))
-        self.b1_y = self.findChild(QtWidgets.QLineEdit, 'b1_y')
-        self.b1_y.setValidator(QDoubleValidator(-10, 10, 2))
-        self.b1_z = self.findChild(QtWidgets.QLineEdit, 'b1_z')
-        self.b1_z.setValidator(QDoubleValidator(-10, 10, 2))
-
-        self.b2_r = self.findChild(QtWidgets.QLineEdit, 'b2_r')
-        self.b2_r.setValidator(QIntValidator(0, 255))
-        self.b2_g = self.findChild(QtWidgets.QLineEdit, 'b2_g')
-        self.b2_g.setValidator(QIntValidator(0, 255))
-        self.b2_b = self.findChild(QtWidgets.QLineEdit, 'b2_b')
-        self.b2_b.setValidator(QIntValidator(0, 255))
-        self.b2_x = self.findChild(QtWidgets.QLineEdit, 'b2_x')
-        self.b2_x.setValidator(QDoubleValidator(-10, 10, 2))
-        self.b2_y = self.findChild(QtWidgets.QLineEdit, 'b2_y')
-        self.b2_y.setValidator(QDoubleValidator(-10, 10, 2))
-        self.b2_z = self.findChild(QtWidgets.QLineEdit, 'b2_z')
-        self.b2_z.setValidator(QDoubleValidator(-10, 10, 2))
-
-        self.b3_r = self.findChild(QtWidgets.QLineEdit, 'b3_r')
-        self.b3_r.setValidator(QIntValidator(0, 255))
-        self.b3_g = self.findChild(QtWidgets.QLineEdit, 'b3_g')
-        self.b3_g.setValidator(QIntValidator(0, 255))
-        self.b3_b = self.findChild(QtWidgets.QLineEdit, 'b3_b')
-        self.b3_b.setValidator(QIntValidator(0, 255))
-        self.b3_x = self.findChild(QtWidgets.QLineEdit, 'b3_x')
-        self.b3_x.setValidator(QDoubleValidator(-10, 10, 2))
-        self.b3_y = self.findChild(QtWidgets.QLineEdit, 'b3_y')
-        self.b3_y.setValidator(QDoubleValidator(-10, 10, 2))
-        self.b3_z = self.findChild(QtWidgets.QLineEdit, 'b3_z')
-        self.b3_z.setValidator(QDoubleValidator(-10, 10, 2))
-
-        self.l_r = self.findChild(QtWidgets.QLineEdit, 'l_r')
-        self.l_r.setValidator(QIntValidator(0, 255))
-        self.l_g = self.findChild(QtWidgets.QLineEdit, 'l_g')
-        self.l_g.setValidator(QIntValidator(0, 255))
-        self.l_b = self.findChild(QtWidgets.QLineEdit, 'l_b')
-        self.l_b.setValidator(QIntValidator(0, 255))
-        self.l_x = self.findChild(QtWidgets.QLineEdit, 'l_x')
-        self.l_x.setValidator(QDoubleValidator(-10, 10, 2))
-        self.l_y = self.findChild(QtWidgets.QLineEdit, 'l_y')
-        self.l_y.setValidator(QDoubleValidator(-10, 10, 2))
-        self.l_z = self.findChild(QtWidgets.QLineEdit, 'l_z')
-        self.l_z.setValidator(QDoubleValidator(-10, 10, 2))
-
-        self.amb = self.findChild(QtWidgets.QLineEdit, 'amb')
-        self.amb.setValidator(QDoubleValidator(-10, 10, 2))
-        self.diff = self.findChild(QtWidgets.QLineEdit, 'diff')
-        self.diff.setValidator(QDoubleValidator(-10, 10, 2))
-        self.s_c = self.findChild(QtWidgets.QLineEdit, 's_c')
-        self.s_c.setValidator(QDoubleValidator(-10, 10, 2))
-        self.s_k = self.findChild(QtWidgets.QLineEdit, 's_k')
-        self.s_k.setValidator(QDoubleValidator(0, 99, 2))
-
         self.initialize()
 
         self.display_button.clicked.connect(self.display)
-        self.clear_button.clicked.connect(self.clear)
-        self.defaults.clicked.connect(self.set_defaults)
+        self.remove_object_button.clicked.connect(self.remove_object)
+        self.add_object_button.clicked.connect(self.add_object)
 
     def initialize(self):
 
-        self.b1_r.setText("0")
-        self.b1_g.setText("0")
-        self.b1_b.setText("255")
-        self.b1_x.setText("0.75")
-        self.b1_y.setText("0.1")
-        self.b1_z.setText("1.0")
-
-        self.b2_r.setText("0")
-        self.b2_g.setText("180")
-        self.b2_b.setText("0")
-        self.b2_x.setText("-0.75")
-        self.b2_y.setText("0.2")
-        self.b2_z.setText("2.25")
-
-        self.b3_r.setText("255")
-        self.b3_g.setText("0")
-        self.b3_b.setText("0")
-        self.b3_x.setText("-2.75")
-        self.b3_y.setText("0.1")
-        self.b3_z.setText("3.5")
-
+        self.amb.setText("0.05")
+        self.diff.setText("1.0")
+        self.s_c.setText("1.0")
+        self.s_k.setText("50")
         self.l_r.setText("255")
         self.l_g.setText("255")
         self.l_b.setText("255")
@@ -112,10 +41,9 @@ class UI(QtWidgets.QMainWindow):
         self.l_y.setText("5")
         self.l_z.setText("-10")
 
-        self.amb.setText("0.05")
-        self.diff.setText("1.0")
-        self.s_c.setText("1.0")
-        self.s_k.setText("50")
+        self.n = 0
+        self.x = 0
+        self.y = 0
 
     def get_input(self, label):
         if label.text() == '':
@@ -126,10 +54,8 @@ class UI(QtWidgets.QMainWindow):
         return val
 
     def get_pos_input(self, label):
-        if label.text() == '':
-            return 0
-        
-        val = float(label.text())
+
+        val = self.get_input(label)
 
         if val > 10:
             val = 10
@@ -140,10 +66,8 @@ class UI(QtWidgets.QMainWindow):
         return val
 
     def get_color_input(self, label):
-        if label.text() == '':
-            return 0
-        
-        val = float(label.text())/255
+
+        val = self.get_input(label)/255
 
         if val > 1:
             val = 1
@@ -151,40 +75,168 @@ class UI(QtWidgets.QMainWindow):
         return val
 
     def display(self):
-        
+
+        data = {}
+        data['objects'] = []
+
+        for i in range(self.n):
+            x = self.get_pos_input(self.findChild(QtWidgets.QLineEdit, f'X_{i+1}'))
+            y = self.get_pos_input(self.findChild(QtWidgets.QLineEdit, f'Y_{i+1}'))
+            z = self.get_pos_input(self.findChild(QtWidgets.QLineEdit, f'Z_{i+1}'))
+
+            r = self.get_color_input(self.findChild(QtWidgets.QLineEdit, f'R_{i+1}'))
+            g = self.get_color_input(self.findChild(QtWidgets.QLineEdit, f'G_{i+1}'))
+            b = self.get_color_input(self.findChild(QtWidgets.QLineEdit, f'B_{i+1}'))
+
+            rad = self.get_pos_input(self.findChild(QtWidgets.QLineEdit, f'radius_{i+1}'))
+
+            data['objects'].append([[x, y, z], rad, [r, g, b]])
+
+        data['material'] = [self.get_input(self.amb), self.get_input(self.diff), self.get_input(self.s_c), self.get_input(self.s_k)]
+        data['l_pos'] = [self.get_pos_input(self.l_x), self.get_pos_input(self.l_y), self.get_pos_input(self.l_z)]
+        data['l_color'] = [self.get_color_input(self.l_r), self.get_color_input(self.l_g), self.get_color_input(self.l_b)]
+
         self.output.setText("Loading image. Please wait.......")
         self.output.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.b1_pos = [self.get_pos_input(self.b1_x), self.get_pos_input(self.b1_y), self.get_pos_input(self.b1_z)]
-        self.b2_pos = [self.get_pos_input(self.b2_x), self.get_pos_input(self.b2_y), self.get_pos_input(self.b2_z)]
-        self.b3_pos = [self.get_pos_input(self.b3_x), self.get_pos_input(self.b3_y), self.get_pos_input(self.b3_z)]
-        self.l_pos = [self.get_pos_input(self.l_x), self.get_pos_input(self.l_y), self.get_pos_input(self.l_z)]
-
-        self.b1_color = [self.get_color_input(self.b1_r), self.get_color_input(self.b1_g), self.get_color_input(self.b1_b)]
-        self.b2_color = [self.get_color_input(self.b2_r), self.get_color_input(self.b2_g), self.get_color_input(self.b2_b)]
-        self.b3_color = [self.get_color_input(self.b3_r), self.get_color_input(self.b3_g), self.get_color_input(self.b3_b)]
-        self.l_color = [self.get_color_input(self.l_r), self.get_color_input(self.l_g), self.get_color_input(self.l_b)]
-
-        self.material = [self.get_input(self.amb), self.get_input(self.diff), self.get_input(self.s_c), self.get_input(self.s_k)]
-
-        args = dict(b1_pos=self.b1_pos, b2_pos=self.b2_pos, b3_pos=self.b3_pos, l_pos=self.l_pos,
-                    b1_color=self.b1_color, b2_color=self.b2_color, b3_color=self.b3_color, l_color=self.l_color, material=self.material)
-
         QGuiApplication.processEvents()
 
-        img = ray_tracer.ray_tracer(args)
+        img = ray_tracer.ray_tracer(data)
         qimage = QImage(img, img.shape[1], img.shape[0], img.shape[1]*3, QImage.Format_RGB888)
 
         pixmap = QPixmap(qimage)
         pixmap = pixmap.scaled(800, 600)
         self.output.setPixmap(pixmap)
 
-    def clear(self):
-        self.output.setPixmap(QPixmap())
+    def add_object(self):
+        self.n += 1
 
-    def set_defaults(self):
-        self.initialize()
-        self.display()
+        self.groupBox = QtWidgets.QGroupBox(self.scroll_area)
+        self.groupBox.setObjectName(f"Object_{self.n}")
+        self.groupBox.setTitle(f"Ball {self.n}")
+        self.groupBox.setMinimumSize(QtCore.QSize(270, 160))
+
+        self.radius = QtWidgets.QLineEdit(self.groupBox)
+        self.radius.setObjectName(f"radius_{self.n}")
+        self.radius.setGeometry(QtCore.QRect(130, 40, 40, 21))
+        self.radius.setValidator(QDoubleValidator(0, 1, 2))
+        font = self.radius.font()
+        font.setPointSize(9)
+        self.radius.setFont(font)
+        self.radius.setText(str(round(random.random(), 2)))
+
+        self.radius_label = QtWidgets.QLabel(self.groupBox)
+        self.radius_label.setObjectName(u"radius_label")
+        self.radius_label.setGeometry(QtCore.QRect(60, 40, 61, 21))
+        self.radius_label.setText("Radius")
+
+        self.R = QtWidgets.QLineEdit(self.groupBox)
+        self.R.setObjectName(f"R_{self.n}")
+        self.R.setGeometry(QtCore.QRect(50, 80, 40, 21))
+        font = self.R.font()
+        font.setPointSize(9)
+        self.R.setFont(font)
+        self.R.setValidator(QIntValidator(0, 255))
+        self.R.setText(str(random.randint(0, 255)))
+
+        self.R_label = QtWidgets.QLabel(self.groupBox)
+        self.R_label.setObjectName(u"R_label")
+        self.R_label.setGeometry(QtCore.QRect(30, 80, 16, 21))
+        self.R_label.setText("R")
+
+        self.G = QtWidgets.QLineEdit(self.groupBox)
+        self.G.setObjectName(f"G_{self.n}")
+        self.G.setGeometry(QtCore.QRect(130, 80, 40, 21))
+        font = self.G.font()
+        font.setPointSize(9)
+        self.G.setFont(font)
+        self.G.setValidator(QIntValidator(0, 255))
+        self.G.setText(str(random.randint(0, 255)))
+
+        self.G_label = QtWidgets.QLabel(self.groupBox)
+        self.G_label.setObjectName(u"G_label")
+        self.G_label.setGeometry(QtCore.QRect(110, 80, 16, 21))
+        self.G_label.setText("G")
+
+        self.B = QtWidgets.QLineEdit(self.groupBox)
+        self.B.setObjectName(f"B_{self.n}")
+        self.B.setGeometry(QtCore.QRect(210, 80, 40, 21))
+        font = self.B.font()
+        font.setPointSize(9)
+        self.B.setFont(font)
+        self.B.setValidator(QIntValidator(0, 255))
+        self.B.setText(str(random.randint(0, 255)))
+
+        self.B_label = QtWidgets.QLabel(self.groupBox)
+        self.B_label.setObjectName(u"B_label")
+        self.B_label.setGeometry(QtCore.QRect(190, 80, 16, 21))
+        self.B_label.setText("B")
+
+        self.X = QtWidgets.QLineEdit(self.groupBox)
+        self.X.setObjectName(f"X_{self.n}")
+        self.X.setGeometry(QtCore.QRect(50, 120, 40, 21))
+        self.X.setValidator(QDoubleValidator(-10, 10, 2))
+        font = self.X.font()
+        font.setPointSize(9)
+        self.X.setFont(font)
+        self.X.setText(str(round(random.uniform(-2, 2), 2)))
+
+        self.X_label = QtWidgets.QLabel(self.groupBox)
+        self.X_label.setObjectName(u"X_label")
+        self.X_label.setGeometry(QtCore.QRect(30, 120, 16, 21))
+        self.X_label.setText("X")
+
+        self.Y = QtWidgets.QLineEdit(self.groupBox)
+        self.Y.setObjectName(f"Y_{self.n}")
+        self.Y.setGeometry(QtCore.QRect(130, 120, 40, 21))
+        self.Y.setValidator(QDoubleValidator(-10, 10, 2))
+        font = self.Y.font()
+        font.setPointSize(9)
+        self.Y.setFont(font)
+        self.Y.setText(str(round(random.uniform(0, 1.5), 2)))
+
+        self.Y_label = QtWidgets.QLabel(self.groupBox)
+        self.Y_label.setObjectName(u"Y_label")
+        self.Y_label.setGeometry(QtCore.QRect(110, 120, 16, 21))
+        self.Y_label.setText("Y")
+
+        self.Z = QtWidgets.QLineEdit(self.groupBox)
+        self.Z.setObjectName(f"Z_{self.n}")
+        self.Z.setGeometry(QtCore.QRect(210, 120, 40, 21))
+        self.Z.setValidator(QDoubleValidator(-10, 10, 2))
+        font = self.Z.font()
+        font.setPointSize(9)
+        self.Z.setFont(font)
+        self.Z.setText(str(round(random.uniform(0, 5), 2)))
+
+        self.Z_label = QtWidgets.QLabel(self.groupBox)
+        self.Z_label.setObjectName(u"Z_label")
+        self.Z_label.setGeometry(QtCore.QRect(190, 120, 16, 21))
+        self.Z_label.setText("Z")
+
+        self.gridLayout.addWidget(self.groupBox, self.x, self.y, QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        
+        if self.y == 1:
+            self.y = 0
+            self.x += 1
+        else:
+            self.y += 1
+
+    def remove_object(self):
+
+        if self.n == 0:
+            return
+
+        self.last_object = self.findChild(QtWidgets.QGroupBox, f'Object_{self.n}')
+        self.last_object.setParent(None)
+
+        self.n -= 1
+
+        if (self.y == 1):
+            self.y -= 1
+        else:
+            self.y = 1
+            self.x -= 1
 
 app = QtWidgets.QApplication(sys.argv)
 window = UI()
